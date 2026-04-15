@@ -1,219 +1,14 @@
-import { useState, useEffect } from 'react';
-import {
-  focusSessionRepository,
-  type WeeklyData,
-  type HeatmapEntry,
-  type ByTaskEntry,
-} from '../../modules/focus-sessions/focus-session.repository';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
 import './index.css';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-);
-
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-const TASK_COLORS = [
-  '#e74c3c',
-  '#3498db',
-  '#2ecc71',
-  '#f39c12',
-  '#9b59b6',
-  '#1abc9c',
-  '#e67e22',
-  '#34495e',
-];
-
-function formatTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
-
-function getHeatmapColor(totalSeconds: number): string {
-  if (totalSeconds === 0) return 'var(--heatmap-empty)';
-  const minutes = totalSeconds / 60;
-  if (minutes < 30) return 'var(--heatmap-level1)';
-  if (minutes < 60) return 'var(--heatmap-level2)';
-  if (minutes < 120) return 'var(--heatmap-level3)';
-  return 'var(--heatmap-level4)';
-}
-
-function toLocalDateString(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function buildHeatmapGrid(
-  entries: HeatmapEntry[],
-): { date: string; totalSeconds: number }[][] {
-  const map = new Map(entries.map((e) => [e.date, e.totalSeconds]));
-
-  const today = new Date();
-
-  // Start: 89 days ago, extended back to Monday
-  const rawStart = new Date(today);
-  rawStart.setDate(today.getDate() - 89);
-  const startDow = (rawStart.getDay() + 6) % 7; // 0=Mon, 6=Sun
-  const start = new Date(rawStart);
-  start.setDate(rawStart.getDate() - startDow);
-
-  // End: today, extended forward to Sunday
-  const endDow = (today.getDay() + 6) % 7;
-  const end = new Date(today);
-  end.setDate(today.getDate() + (6 - endDow));
-
-  // Generate all days from start (Monday) to end (Sunday)
-  const days: { date: string; totalSeconds: number }[] = [];
-  const current = new Date(start);
-  while (current <= end) {
-    const dateStr = toLocalDateString(current);
-    days.push({ date: dateStr, totalSeconds: map.get(dateStr) ?? 0 });
-    current.setDate(current.getDate() + 1);
-  }
-
-  // Group into weeks (columns) — always 7 days per week
-  const weeks: { date: string; totalSeconds: number }[][] = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
-  }
-
-  return weeks;
-}
-
 export default function Report() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
-  const [heatmapData, setHeatmapData] = useState<HeatmapEntry[]>([]);
-  const [byTaskData, setByTaskData] = useState<ByTaskEntry[]>([]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [weekly, heatmap, byTask] = await Promise.all([
-        focusSessionRepository.getWeekly(),
-        focusSessionRepository.getHeatmap(),
-        focusSessionRepository.getByTask(),
-      ]);
-      setWeeklyData(weekly);
-      setHeatmapData(heatmap);
-      setByTaskData(byTask);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="report-page">
-        <div className="report-loading">
-          <div className="spinner" />
-        </div>
-      </div>
-    );
-  }
-
-  // Weekly bar chart data
-  const weeklyTotalSeconds =
-    weeklyData?.daily.reduce((sum, d) => sum + d.totalSeconds, 0) ?? 0;
-  const barData = {
-    labels: weeklyData?.daily.map((d) => d.dayOfWeek) ?? DAY_LABELS,
-    datasets: [
-      {
-        label: '集中時間（分）',
-        data:
-          weeklyData?.daily.map((d) => Math.round(d.totalSeconds / 60)) ?? [],
-        backgroundColor: 'rgba(231, 76, 60, 0.7)',
-        borderColor: '#e74c3c',
-        borderWidth: 1,
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context: { parsed: { y: number | null } }) =>
-            `${context.parsed.y ?? 0}分`,
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { color: 'rgba(0,0,0,0.5)' },
-        grid: { color: 'rgba(0,0,0,0.06)' },
-      },
-      x: {
-        ticks: { color: 'rgba(0,0,0,0.5)' },
-        grid: { display: false },
-      },
-    },
-  };
-
-  // Doughnut chart data
-  const doughnutData = {
-    labels: byTaskData.map((d) => d.taskTitle),
-    datasets: [
-      {
-        data: byTaskData.map((d) => Math.round(d.totalSeconds / 60)),
-        backgroundColor: byTaskData.map(
-          (_, i) => TASK_COLORS[i % TASK_COLORS.length],
-        ),
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { color: 'rgba(0,0,0,0.7)', padding: 16 },
-      },
-      tooltip: {
-        callbacks: {
-          label: (context: { label: string; parsed: number }) =>
-            `${context.label}: ${context.parsed}分`,
-        },
-      },
-    },
-  };
-
-  // Heatmap
-  const weeks = buildHeatmapGrid(heatmapData);
+  // ローディング状態のUIを確認する場合はこちらをコメントイン:
+  // return (
+  //   <div className="report-page">
+  //     <div className="report-loading">
+  //       <div className="spinner" />
+  //     </div>
+  //   </div>
+  // );
 
   return (
     <div className="report-page">
@@ -223,39 +18,31 @@ export default function Report() {
       <div className="report-summary">
         <div className="summary-card">
           <span className="summary-label">今週の合計集中時間</span>
-          <span className="summary-value">
-            {formatTime(weeklyTotalSeconds)}
+          <span className="summary-value">2h 30m</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">期間</span>
+          <span className="summary-value summary-date">
+            2026-04-09 〜 2026-04-15
           </span>
         </div>
-        {weeklyData && (
-          <div className="summary-card">
-            <span className="summary-label">期間</span>
-            <span className="summary-value summary-date">
-              {weeklyData.weekStart} 〜 {weeklyData.weekEnd}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="report-grid">
         {/* Bar Chart */}
         <div className="report-card">
           <h2 className="card-heading">曜日別集中時間</h2>
-          <div className="chart-container">
-            <Bar data={barData} options={barOptions} />
-          </div>
+          {/* chart.js を削除したためグラフは非表示（ライブラリ追加後に Bar コンポーネントを復元してください） */}
+          <div className="chart-container" />
         </div>
 
         {/* Doughnut Chart */}
         <div className="report-card">
           <h2 className="card-heading">タスク別集中時間</h2>
-          {byTaskData.length > 0 ? (
-            <div className="chart-container">
-              <Doughnut data={doughnutData} options={doughnutOptions} />
-            </div>
-          ) : (
-            <p className="empty-message">データがありません</p>
-          )}
+          {/* chart.js を削除したためグラフは非表示（ライブラリ追加後に Doughnut コンポーネントを復元してください） */}
+          <div className="chart-container" />
+          {/* データなし状態のUIを確認する場合はコメントイン: */}
+          {/* <p className="empty-message">データがありません</p> */}
         </div>
       </div>
 
@@ -273,20 +60,56 @@ export default function Report() {
             )}
           </div>
           <div className="heatmap-grid">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="heatmap-column">
-                {week.map((day, di) => (
-                  <div
-                    key={di}
-                    className="heatmap-cell"
-                    style={{
-                      backgroundColor: getHeatmapColor(day.totalSeconds),
-                    }}
-                    title={`${day.date}: ${formatTime(day.totalSeconds)}`}
-                  />
-                ))}
-              </div>
-            ))}
+            {/* Week 1 */}
+            <div className="heatmap-column">
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-03-16: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-03-17: 20m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-03-18: 45m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level3)' }} title="2026-03-19: 90m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level4)' }} title="2026-03-20: 150m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-03-21: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-03-22: 60m" />
+            </div>
+            {/* Week 2 */}
+            <div className="heatmap-column">
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-03-23: 25m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level3)' }} title="2026-03-24: 100m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-03-25: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-03-26: 50m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level4)' }} title="2026-03-27: 200m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-03-28: 15m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-03-29: 0m" />
+            </div>
+            {/* Week 3 */}
+            <div className="heatmap-column">
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-03-30: 55m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-03-31: 25m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level3)' }} title="2026-04-01: 75m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level4)' }} title="2026-04-02: 130m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-04-03: 50m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-04: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-04-05: 20m" />
+            </div>
+            {/* Week 4 */}
+            <div className="heatmap-column">
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level3)' }} title="2026-04-06: 80m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level4)' }} title="2026-04-07: 150m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-04-08: 45m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-04-09: 25m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level3)' }} title="2026-04-10: 90m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-11: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-04-12: 60m" />
+            </div>
+            {/* Week 5 (current week) */}
+            <div className="heatmap-column">
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level2)' }} title="2026-04-13: 50m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level4)' }} title="2026-04-14: 150m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-level1)' }} title="2026-04-15: 25m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-16: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-17: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-18: 0m" />
+              <div className="heatmap-cell" style={{ backgroundColor: 'var(--heatmap-empty)' }} title="2026-04-19: 0m" />
+            </div>
           </div>
         </div>
         <div className="heatmap-legend">

@@ -1,39 +1,15 @@
 import './index.css';
 
-interface TaskItemProps {
-  title: string;
-  completed?: boolean;
-  onToggleComplete?: () => void;
-  onDelete?: () => void;
-}
-
-export default function TaskItem({
-  title,
-  completed = false,
-  onToggleComplete,
-  onDelete,
-}: TaskItemProps) {
+export default function TaskItem() {
   return (
-    <li className={`task-item ${completed ? 'completed' : ''}`}>
-      {onToggleComplete ? (
-        <input
-          type="checkbox"
-          checked={completed}
-          onChange={onToggleComplete}
-        />
-      ) : (
-        <span className="task-dot" />
-      )}
-      <span className="task-title">{title}</span>
-      {onDelete && (
-        <button
-          className="task-delete-button"
-          type="button"
-          onClick={onDelete}
-        >
-          ✕
-        </button>
-      )}
+    // 完了済みタスクのUIを確認する場合は className を "task-item completed" に変更してください
+    <li className="task-item">
+      <span className="task-dot" />
+      {/* チェックボックスあり（タイマーページ）のUIを確認する場合はこちらをコメントイン: */}
+      {/* <input type="checkbox" checked={false} onChange={() => {}} /> */}
+      <span className="task-title">タスクのタイトル</span>
+      {/* 削除ボタンあり（タイマーページ）のUIを確認する場合はこちらをコメントイン: */}
+      {/* <button className="task-delete-button" type="button" onClick={() => {}}>✕</button> */}
     </li>
   );
 }

@@ -1,52 +1,39 @@
-import { FocusSession } from '../../modules/focus-sessions/focus-session.entity';
-
-interface SessionLogProps {
-  sessions: FocusSession[];
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  focus: '集中',
-  short_break: '短休憩',
-  long_break: '長休憩',
-};
-
-export default function SessionLog({ sessions }: SessionLogProps) {
+export default function SessionLog() {
   return (
     <div className="session-log-section">
       <h2 className="section-heading">今日のログ</h2>
 
-      {sessions.length === 0 ? (
-        <p className="empty-message">まだセッションがありません</p>
-      ) : (
-        <ul className="session-items">
-          {sessions.map((session, index) => (
-            <li
-              key={session.id}
-              className={`session-item ${session.interrupted ? 'interrupted' : ''}`}
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              <span className={`session-type-badge type-${session.type}`}>
-                {TYPE_LABELS[session.type] || session.type}
-              </span>
-              <span className="session-task-name">
-                {session.task?.title || '—'}
-              </span>
-              <span className="session-time">
-                {new Date(session.startedAt).toLocaleTimeString('ja-JP', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <span className="session-duration">
-                {Math.floor(session.duration / 60)}分
-              </span>
-              {session.interrupted && (
-                <span className="interrupted-badge">中断</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* セッションが0件の場合のUIを確認する場合はこちらをコメントイン（下のulはコメントアウト）: */}
+      {/* <p className="empty-message">まだセッションがありません</p> */}
+
+      <ul className="session-items">
+        <li className="session-item" style={{ animationDelay: '0s' }}>
+          <span className="session-type-badge type-focus">集中</span>
+          <span className="session-task-name">デザインのレビュー</span>
+          <span className="session-time">14:00</span>
+          <span className="session-duration">25分</span>
+        </li>
+        <li className="session-item" style={{ animationDelay: '0.05s' }}>
+          <span className="session-type-badge type-short_break">短休憩</span>
+          <span className="session-task-name">—</span>
+          <span className="session-time">14:30</span>
+          <span className="session-duration">5分</span>
+        </li>
+        {/* 中断ありのセッションのUIを確認する場合はこちらをコメントイン: */}
+        {/* <li className="session-item interrupted" style={{ animationDelay: '0.1s' }}>
+          <span className="session-type-badge type-focus">集中</span>
+          <span className="session-task-name">バグ修正</span>
+          <span className="session-time">15:00</span>
+          <span className="session-duration">10分</span>
+          <span className="interrupted-badge">中断</span>
+        </li> */}
+        <li className="session-item" style={{ animationDelay: '0.1s' }}>
+          <span className="session-type-badge type-focus">集中</span>
+          <span className="session-task-name">バグ修正</span>
+          <span className="session-time">15:00</span>
+          <span className="session-duration">25分</span>
+        </li>
+      </ul>
     </div>
   );
 }

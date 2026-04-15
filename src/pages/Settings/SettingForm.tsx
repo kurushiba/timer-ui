@@ -1,53 +1,4 @@
-import { useState } from 'react';
-import { UserSetting } from '../../modules/user-settings/user-setting.entity';
-
-interface SettingFormProps {
-  initialValues: UserSetting;
-  onSubmit: (data: Partial<UserSetting>) => Promise<void>;
-  disabled?: boolean;
-}
-
-export default function SettingForm({
-  initialValues,
-  onSubmit,
-  disabled,
-}: SettingFormProps) {
-  const [focusDuration, setFocusDuration] = useState(
-    initialValues.focusDuration,
-  );
-  const [shortBreakDuration, setShortBreakDuration] = useState(
-    initialValues.shortBreakDuration,
-  );
-  const [longBreakDuration, setLongBreakDuration] = useState(
-    initialValues.longBreakDuration,
-  );
-  const [sessionsBeforeLongBreak, setSessionsBeforeLongBreak] = useState(
-    initialValues.sessionsBeforeLongBreak,
-  );
-  const [autoStartNext, setAutoStartNext] = useState(
-    initialValues.autoStartNext,
-  );
-  const [soundEnabled, setSoundEnabled] = useState(initialValues.soundEnabled);
-  const [soundType, setSoundType] = useState(initialValues.soundType);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await onSubmit({
-        focusDuration,
-        shortBreakDuration,
-        longBreakDuration,
-        sessionsBeforeLongBreak,
-        autoStartNext,
-        soundEnabled,
-        soundType,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
+export default function SettingForm() {
   return (
     <>
       <div className="settings-section">
@@ -60,9 +11,7 @@ export default function SettingForm({
             type="number"
             min={1}
             max={60}
-            value={focusDuration}
-            onChange={(e) => setFocusDuration(Number(e.target.value))}
-            disabled={disabled}
+            defaultValue={25}
           />
         </div>
 
@@ -73,9 +22,7 @@ export default function SettingForm({
             type="number"
             min={1}
             max={30}
-            value={shortBreakDuration}
-            onChange={(e) => setShortBreakDuration(Number(e.target.value))}
-            disabled={disabled}
+            defaultValue={5}
           />
         </div>
 
@@ -86,9 +33,7 @@ export default function SettingForm({
             type="number"
             min={1}
             max={60}
-            value={longBreakDuration}
-            onChange={(e) => setLongBreakDuration(Number(e.target.value))}
-            disabled={disabled}
+            defaultValue={15}
           />
         </div>
 
@@ -101,9 +46,7 @@ export default function SettingForm({
             type="number"
             min={1}
             max={10}
-            value={sessionsBeforeLongBreak}
-            onChange={(e) => setSessionsBeforeLongBreak(Number(e.target.value))}
-            disabled={disabled}
+            defaultValue={4}
           />
         </div>
       </div>
@@ -113,12 +56,12 @@ export default function SettingForm({
 
         <div className="setting-item toggle-item">
           <label htmlFor="autoStartNext">休憩後の自動開始</label>
+          {/* OFF状態のUIを確認する場合は "toggle-button active" から "active" を外してください */}
           <button
             id="autoStartNext"
-            className={`toggle-button ${autoStartNext ? 'active' : ''}`}
-            onClick={() => setAutoStartNext(!autoStartNext)}
+            className="toggle-button active"
+            onClick={() => {}}
             type="button"
-            disabled={disabled}
           >
             <span className="toggle-knob" />
           </button>
@@ -130,12 +73,12 @@ export default function SettingForm({
 
         <div className="setting-item toggle-item">
           <label htmlFor="soundEnabled">通知音</label>
+          {/* OFF状態のUIを確認する場合は "toggle-button active" から "active" を外してください */}
           <button
             id="soundEnabled"
-            className={`toggle-button ${soundEnabled ? 'active' : ''}`}
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="toggle-button active"
+            onClick={() => {}}
             type="button"
-            disabled={disabled}
           >
             <span className="toggle-knob" />
           </button>
@@ -143,12 +86,7 @@ export default function SettingForm({
 
         <div className="setting-item">
           <label htmlFor="soundType">通知音の種類</label>
-          <select
-            id="soundType"
-            value={soundType}
-            onChange={(e) => setSoundType(e.target.value)}
-            disabled={disabled}
-          >
+          <select id="soundType" defaultValue="default">
             <option value="default">デフォルト</option>
             <option value="bell">ベル</option>
             <option value="chime">チャイム</option>
@@ -156,9 +94,11 @@ export default function SettingForm({
         </div>
       </div>
 
-      <button className="save-button" onClick={handleSave} disabled={isSaving || disabled}>
-        {isSaving ? '保存中...' : '設定を保存'}
+      <button className="save-button" onClick={() => {}}>
+        設定を保存
       </button>
+      {/* 保存中のUIを確認する場合は上をコメントアウトしてこちらをコメントイン: */}
+      {/* <button className="save-button" disabled>保存中...</button> */}
     </>
   );
 }
