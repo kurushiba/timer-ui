@@ -351,9 +351,14 @@
   white-space: nowrap;
 }
 
-.task-add-form button:hover {
+.task-add-form button:hover:not(:disabled) {
   background: #c0392b;
   transform: translateY(-1px);
+}
+
+.task-add-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .task-items {
