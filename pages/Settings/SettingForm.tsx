@@ -68,37 +68,9 @@ export default function SettingForm() {
         </div>
       </div>
 
-      <div className="settings-section">
-        <h2 className="section-title">通知設定</h2>
-
-        <div className="setting-item toggle-item">
-          <label htmlFor="soundEnabled">通知音</label>
-          {/* OFF状態のUIを確認する場合は "toggle-button active" から "active" を外してください */}
-          <button
-            id="soundEnabled"
-            className="toggle-button active"
-            onClick={() => {}}
-            type="button"
-          >
-            <span className="toggle-knob" />
-          </button>
-        </div>
-
-        <div className="setting-item">
-          <label htmlFor="soundType">通知音の種類</label>
-          <select id="soundType" defaultValue="default">
-            <option value="default">デフォルト</option>
-            <option value="bell">ベル</option>
-            <option value="chime">チャイム</option>
-          </select>
-        </div>
-      </div>
-
       <button className="save-button" onClick={() => {}}>
         設定を保存
       </button>
-      {/* 保存中のUIを確認する場合は上をコメントアウトしてこちらをコメントイン: */}
-      {/* <button className="save-button" disabled>保存中...</button> */}
     </>
   );
 }
